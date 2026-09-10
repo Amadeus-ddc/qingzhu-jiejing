@@ -53,6 +53,6 @@ export function titleMarkup({selected,meta,figures,saved,timeLabel}){
     return `<button data-character="${v.id}" aria-label="选择${v.name}${locked?`，通过${REGIONS[v.unlock-1].name}后解锁`:''}" aria-pressed="${selected===v.id}" class="character-tab ${selected===v.id?'selected':''} ${locked?'locked':''}"><span class="character-tab-name">${v.name}</span><span class="character-tab-status">${locked?`${['','一','二'][v.unlock]}境后解锁`:selected===v.id?'已选':'可选'}</span></button>`;
    }).join('')}</div>
   </aside>
-  <footer class="title-footer"><button class="title-help" data-action="help" aria-label="查看操作说明"><span class="desktop-help">WASD 移动<span>·</span>Space 闪避<span>·</span>E 法术</span><span class="touch-help">左侧移动<span>·</span>右侧施法</span><span class="help-arrow" aria-hidden="true">↗</span></button><span class="title-session-note">单人试炼<span>·</span>约 20 分钟<span>·</span>自动存档</span></footer>
+  <footer class="title-footer"><button class="title-help" data-action="help" aria-label="查看操作说明"><span class="desktop-help">WASD 移动<span>·</span>Space 闪避<span>·</span>E 法术</span><span class="touch-help">左侧移动<span>·</span>右侧施法</span><span class="help-arrow" aria-hidden="true">↗</span></button><span class="title-session-note">单人试炼<span>·</span>可提前挑战首领<span>·</span>自动存档</span></footer>
  </section>`;
 }

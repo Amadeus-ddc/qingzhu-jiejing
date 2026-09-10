@@ -100,9 +100,30 @@ export function walkable(region,x,y,r=0){
  }
  return true;
 }
-export function moveOnTerrain(region,body,dx,dy){
+export function moveOnTerrain(region,body,dx,dy,assist=false){
  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/Math.max(4,body.r*.6))),sx=dx/steps,sy=dy/steps;
- for(let i=0;i<steps;i++)if(walkable(region,body.x+sx,body.y+sy,body.r)){body.x+=sx;body.y+=sy;}else{if(walkable(region,body.x+sx,body.y,body.r))body.x+=sx;if(walkable(region,body.x,body.y+sy,body.r))body.y+=sy;}
+ for(let i=0;i<steps;i++){
+  const beforeX=body.x,beforeY=body.y;
+  if(walkable(region,body.x+sx,body.y+sy,body.r)){body.x+=sx;body.y+=sy;}
+  else{
+   if(walkable(region,body.x+sx,body.y,body.r))body.x+=sx;
+   if(walkable(region,body.x,body.y+sy,body.r))body.y+=sy;
+   // Walking nudges along a free tangent; every small step still collides.
+   // Dash, teleport skills and enemy navigation retain their own movement rules.
+   if(assist&&Math.hypot(body.x-beforeX,body.y-beforeY)<Math.hypot(sx,sy)*.2){
+    const side=body.slideSide||1;
+    for(const a of [Math.PI/6,Math.PI/3,Math.PI/2]){
+     let moved=false;
+     for(const sign of [side,-side]){
+      const x=sx*Math.cos(a)-sy*Math.sin(a)*sign,y=sx*Math.sin(a)*sign+sy*Math.cos(a);
+      if(walkable(region,body.x+x,body.y+y,body.r)){body.x+=x;body.y+=y;body.slideSide=sign;moved=true;break;}
+     }
+     if(moved)break;
+    }
+   }
+  }
+ }
+
 }
 export function clearLine(region,a,b,r=0,projectile=false){
  const dx=b.x-a.x,dy=b.y-a.y,lo=chunkAt(Math.min(a.x,b.x)-r,Math.min(a.y,b.y)-r),hi=chunkAt(Math.max(a.x,b.x)+r,Math.max(a.y,b.y)+r),shapes=[];

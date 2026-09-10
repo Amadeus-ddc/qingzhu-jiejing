@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/pixel-core.test.mjs tests/pixel-terrain.test.mjs tests/pixel-waves.test.mjs tests/pixel-bosses.test.mjs",
+    "test": "node --test tests/pixel-core.test.mjs tests/pixel-terrain.test.mjs tests/pixel-waves.test.mjs tests/pixel-bosses.test.mjs tests/pixel-feedback.test.mjs",
     "test:balance": "node tests/pixel-balance.mjs"
   },
   "dependencies": {

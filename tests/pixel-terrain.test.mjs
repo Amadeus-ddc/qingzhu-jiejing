@@ -47,7 +47,7 @@ test('paths and exploration sites are reachable near the start and in remote sce
   for(const path of w.paths)followRoute(region,start,shifted(path.at(-1),cx,cy),11);
  }
 });
-test('movement, dash, burrow and the fox skill stop at remote obstacles',()=>{
+test('walking can skirt obstacles while dash, burrow and fox skills cannot cross them',()=>{
  for(let region=0;region<3;region++)for(const[cx,cy]of[[0,0],[7,-7]]){
   const{a,s}=obstacle(region,cx,cy);
   for(const method of['walk','dash','long','burrow','skill']){
@@ -56,10 +56,10 @@ test('movement, dash, burrow and the fox skill stop at remote obstacles',()=>{
    else for(let frame=0;frame<120;frame++){
     if(method==='skill'){g.player.skill=0;g.player.mana=100;castCharacterSkill(g);}
     else if(method==='burrow'){g.player.quick=['burrow'];g.player.quickIndex=0;g.player.consumables.burrow=1;useConsumable(g);}
-    else g.tick(1/30,{x:1,y:0,dash:method==='dash'});
+    else {if(method==='dash')g.player.dash=0;g.tick(1/30,{x:1,y:0,dash:method==='dash'});}
     assertSafe(region,g.player,method);
    }
-   assert.ok(g.player.x<=s.x-s.rx-g.player.r+.02,method+' crossed the obstacle');
+   if(method!=='walk')assert.ok(g.player.x<=s.x-s.rx-g.player.r+.02,method+' crossed the obstacle');
   }
  }
 });
