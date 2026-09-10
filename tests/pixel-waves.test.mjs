@@ -23,7 +23,7 @@ test('the time score uses only existing enemies and respects spawn, HP and speed
    assert.ok(wave.name&&wave.phaseId);assert.ok(Number.isInteger(wave.batch)&&wave.batch>=1&&wave.batch<=6);
    assert.ok(Number.isFinite(wave.interval)&&wave.interval>=.75);
    assert.ok(rate(wave)<=8);
-   assert.ok(wave.hpScale>=.45&&wave.hpScale<=1.15);assert.ok(wave.speedScale>=.75&&wave.speedScale<=1.05);
+   assert.ok(wave.hpScale>=.45&&wave.hpScale<=2.1);assert.ok(wave.speedScale>=.75&&wave.speedScale<=1.05);
    assert.ok(['ring','arc','line'].includes(wave.formation));assert.equal(typeof wave.elite,'boolean');
    assert.ok(wave.pool.length>0);for(const i of wave.pool){assert.ok(Number.isInteger(i)&&i>=0&&i<4);assert.equal(ENEMIES[REGIONS[region].enemy[i]].boss,undefined);}
   }
@@ -42,7 +42,7 @@ test('every region alternates fragile harvest crowds, positional pressure and us
    assert.ok(wave.pool.some(i=>['shoot','charge'].includes(ENEMIES[REGIONS[region].enemy[i]].behavior)),'pressure must require handling a distinct enemy behavior');
    assert.ok(meanHP(region,wave)>meanHP(region,harvest[0].wave)*1.4,'a hard wave must feel different from a harvest crowd');
   }
-  assert.ok(harvest.slice(1).every(p=>rate(p.wave)>=3.8&&p.wave.hpScale<=(region===0?.8:.65)));
+  assert.ok(harvest.slice(1).every(p=>rate(p.wave)>=3.8&&p.wave.hpScale<=1.35));
   assert.ok(list.some((p,i)=>i>0&&rate(p.wave)<=.35&&rate(list[i-1].wave)>1),'pressure must visibly recede');
  }
 });
@@ -80,9 +80,9 @@ test('elite rewards are single marked encounters and cannot become a repeated fa
 test('boss arrivals reduce adds, retain fragile harvest phases and lead to a natural endpoint',()=>{
  for(let region=0;region<3;region++){
   const {bossAt,duration}=REGIONS[region],arrival=encounter(region,bossAt);
-  assert.equal(role(arrival),'boss-entry');assert.ok(rate(arrival)<=.5);assert.ok(arrival.hpScale<=(region===0?.7:.65));
+  assert.equal(role(arrival),'boss-entry');assert.ok(rate(arrival)<=.5);assert.ok(arrival.hpScale<=1.2);
   const late=phases(region).filter(p=>p.start>=bossAt);
-  assert.ok(late.some(p=>rate(p.wave)>=5&&p.wave.hpScale<=(region===0?.8:.65)),'late low-level enemies should still be harvestable');
+  assert.ok(late.some(p=>rate(p.wave)>=5&&p.wave.hpScale<=1.35),'late low-level enemies should still be harvestable');
   assert.ok(late.some(p=>rate(p.wave)<=.35&&p.end-p.start>=(region===0?16:26)),'boss combat needs a real add-recovery window');
   assert.ok(late.every(p=>!p.wave.elite),'do not stack reward elites on the scheduled boss');
   for(const time of [duration,duration+45,duration+600,7200]){const ended=encounter(region,time);assert.equal(ended.batch,0);assert.equal(ended.elite,false);assert.equal(ended.warn,undefined);}

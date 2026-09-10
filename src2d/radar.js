@@ -30,26 +30,35 @@ export function radarTiles(view){
  return tiles;
 }
 
+export function forgeUseful(g){
+ const p=g.player;
+ return !!p.weapons.sword&&(
+  (!p.swordCrafted&&p.materials.bamboo>=1&&p.spirit>=20)||
+  (!p.arrayRecipe&&g.swordCount>=36&&p.materials.gold>=1&&p.spirit>=40)||
+  (!p.swordAwakened&&p.swordCrafted&&g.realm==='元婴'&&p.materials.gold>=1&&p.spirit>=60));
+}
 export function radarTarget(g,knownBoss){
+ const defended=g.pois.find(q=>q.state==='growing');
+ if(defended)return {...defended,role:'poi',hint:`守护灵圃 · 还需 ${Math.ceil(defended.remaining)}息`};
  const boss=knownBoss??g.enemies.find(e=>e.boss&&e.hp>0);
  if(finitePoint(boss)&&boss.hp>0)return{x:boss.x,y:boss.y,name:boss.name||ENEMIES[boss.kind]?.name||'首领',role:'boss'};
  if(g.bossSpawned&&!g.bossDead&&finitePoint(g.bossHome))return{...g.bossHome,name:ENEMIES[g.region.boss]?.name||'首领',role:'boss'};
  let nearest=null,portal=null,nearDistance=Infinity,portalDistance=Infinity;
  for(const poi of g.pois){
-  if(!finitePoint(poi)||unavailable.has(poi.state))continue;
+  if(!finitePoint(poi)||unavailable.has(poi.state)||(poi.kind==='forge'&&!forgeUseful(g)))continue;
   const d=(poi.x-g.player.x)**2+(poi.y-g.player.y)**2;
   if(d<nearDistance){nearest=poi;nearDistance=d;}
   if(poi.kind==='portal'&&d<portalDistance){portal=poi;portalDistance=d;}
  }
  const point=g.bossDead&&portal?portal:nearest;
- return point?{x:point.x,y:point.y,name:point.name,role:point.kind==='portal'?'portal':'poi'}:null;
+ return point?{x:point.x,y:point.y,name:point.name,role:point.kind==='portal'?'portal':'poi',hint:point.kind==='herb'?'灵药疗伤或守护取材':point.kind==='forge'?'材料齐备 · 可炼器':point.kind==='elite'?'挑战守卫取得灵材':point.kind==='portal'?'首领已败 · 可立即离境':'探索收集灵气与符箓'}:null;
 }
 
 export function radarObjective(g,target=radarTarget(g)){
  if(!target)return '四向探索 · 寻找境中机缘';
  const dx=target.x-g.player.x,dy=target.y-g.player.y,distance=Math.round(Math.hypot(dx,dy));
  const direction=distance<12?'近处':directions[(Math.round(Math.atan2(dy,dx)*4/Math.PI)+8)%8];
- return `${target.name} · ${direction} · 距 ${distance}`;
+ return `${target.name} · ${direction} · 距 ${distance}${target.hint?' · '+target.hint:''}`;
 }
 
 export function radarEdge(view,target){

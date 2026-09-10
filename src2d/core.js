@@ -51,8 +51,8 @@ export class BattleCore{
    }
   }
   if(this.bossDead){
-   if(!this.poiRecords.exit){const at=safePosition(this.regionIndex,this.bossHome.x,this.bossHome.y,24);this.poiRecords.exit={kind:'portal',name:this.regionIndex===2?'归途界门':'跨境界门',...at,id:this.id(),recordKey:'exit',state:'locked'};}
-   const gate=this.poiRecords.exit;if(this.regionTime>=this.region.duration)gate.state='ready';nearby.push(gate);
+   if(!this.poiRecords.exit){const at=safePosition(this.regionIndex,this.bossHome.x,this.bossHome.y,24);this.poiRecords.exit={kind:'portal',name:this.regionIndex===2?'归途界门':'跨境界门',...at,id:this.id(),recordKey:'exit',state:'ready'};}
+   const gate=this.poiRecords.exit;gate.state='ready';nearby.push(gate);
   }
   // Keep ongoing defended events active even when the camera enters a new chunk.
   for(const poi of this.pois)if(['growing','fighting'].includes(poi.state)&&!nearby.some(q=>q.id===poi.id))nearby.push(poi);
@@ -162,7 +162,7 @@ export class BattleCore{
   if(id==='portal')this.completeRegion();this.gainLevels();return true;
  }
  completeRegion(){
-  if(!this.bossDead||this.regionTime<this.region.duration)return false;
+  if(!this.bossDead)return false;
   this.meta.cleared=Math.max(this.meta.cleared,this.regionIndex+1);
   if(this.regionIndex===2){this.mode='won';this.emit('won');return true;}
   this.mode='transition';this.emit('transition');return true;
@@ -170,13 +170,20 @@ export class BattleCore{
  nextRegion(){
   if(this.mode!=='transition')return false;this.recallArray();this.regionIndex++;this.regionTime=0;this.spawnTimer=1;this.bossDead=false;this.bossSpawned=false;this.enemies=[];this.pickups=[];this.projectiles=[];this.zones=[];this.hazards=[];this.decoy=null;this.player.x=0;this.player.y=110;this.player.hp=Math.min(this.player.maxHp,this.player.hp+35);this.player.mana=this.player.maxMana;this.player.invuln=2;this.createRegion();this.syncSwords();this.mode='playing';this.emit('region',{name:this.world.title});return true;
  }
+ get canChallengeBoss(){return !this.bossSpawned&&!this.bossDead&&this.regionTime>=60&&this.regionTime<this.region.bossAt-5;}
+ challengeBoss(){
+  if(this.mode!=='playing'||!this.canChallengeBoss)return false;
+  // Advance only the encounter schedule, never survival time, XP or rewards.
+  this.regionTime=this.region.bossAt-5;this.encounterId=null;this.spawnTimer=1;
+  this.notify('已引动首领 · 五息后现身；跳过敌潮不会获得其奖励');return true;
+ }
  tick(dt,input={}){
   if(this.mode!=='playing')return;dt=clamp(dt,0,.05);this.time+=dt;this.regionTime+=dt;const p=this.player;
   for(const key of ['dash','dashTime','invuln','skill','castTime','hurtTime','hidden','focus'])p[key]=Math.max(0,p[key]-dt);
   p.mana=Math.min(p.maxMana,p.mana+dt*(3.5+(p.passives.chongyuan||0)*.65));
   let mx=input.x||0,my=input.y||0,d=Math.hypot(mx,my);if(d>1){mx/=d;my/=d;}p.moving=d>.1;if(p.moving&&p.dashTime===0){p.dx=mx/(Math.hypot(mx,my)||1);p.dy=my/(Math.hypot(mx,my)||1);}
   if(input.dash&&p.dash<=0){p.dash=2.7;p.dashTime=.2;p.invuln=Math.max(p.invuln,.45);p.skill=Math.max(0,p.skill-(p.passives.sunv||0)*.6);this.emit('dash',{x:p.x,y:p.y});}
-  if(p.dashTime>0){mx=p.dx;my=p.dy;}const speed=p.dashTime>0?410:p.speed;this.move(p,mx*speed*dt,my*speed*dt);this.streamPOIs();
+  if(p.dashTime>0){mx=p.dx;my=p.dy;}const speed=p.dashTime>0?410:p.speed;moveOnTerrain(this.regionIndex,p,mx*speed*dt,my*speed*dt,p.dashTime<=0);this.streamPOIs();
   if(input.skill)castCharacterSkill(this);if(input.item)useConsumable(this);if(input.quick!==undefined)p.quickIndex=clamp(input.quick,0,1);if(input.flag)this.placeFlag();if(input.recall)this.recallArray();if(input.interact)this.interact();if(this.mode!=='playing')return;
   this.updateEncounters(dt);
   if(!this.bossSpawned&&this.regionTime>=this.region.bossAt){this.bossSpawned=true;this.bossHome=offscreenPosition(this.regionIndex,p,{r:ENEMIES[this.region.boss].r,angle:-Math.PI/2,...this.visibleBounds})||safePosition(this.regionIndex,p.x,p.y-420,ENEMIES[this.region.boss].r);this.spawn(this.region.boss,this.bossHome.x,this.bossHome.y);}

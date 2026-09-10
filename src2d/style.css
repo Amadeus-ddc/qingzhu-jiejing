@@ -136,3 +136,10 @@
 .toast{max-width:100%;white-space:normal;font-size:13px;line-height:1.5;padding:8px 12px}
 .toast.special{font-size:18px;line-height:1.45;padding:10px 14px;letter-spacing:.05em}
 @media(max-height:520px){#toasts{top:100px;left:14px;width:200px;gap:5px}.toast{font-size:11px;padding:6px 9px}.toast.special{font-size:14px;padding:8px 10px}}
+
+/* Keep the next action visible on both desktop and touch layouts. */
+#objective,#encounter-hint{display:block}
+#encounter-hint{color:#d3c399;font-size:12px;line-height:1.4;margin:5px 0}
+#challenge-boss{pointer-events:auto;width:100%;min-height:32px;border:1px solid #c4a269;background:#26392ee8;color:#f4dba7;border-radius:5px;font:inherit;font-size:12px;cursor:pointer}
+#challenge-boss:focus-visible{outline:2px solid #f4dba7;outline-offset:2px}
+@media(max-height:500px){.map-panel{width:152px}#minimap{height:76px;width:100%;object-fit:contain}#objective{font-size:11px;line-height:1.35}#encounter-hint{font-size:11px;margin:3px 0}#challenge-boss{min-height:28px}}

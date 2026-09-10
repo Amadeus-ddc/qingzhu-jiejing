@@ -13,8 +13,8 @@ const score=[
   id:'forest',duration:360,
   // Poison spiders / wolves / shooting snakes / charging apes.
   phases:[
-   phase(0,'harvest-1','蛛潮初起',1.5,2,[0,0,1],.6,.9,'arc'),
-   phase(20,'pressure-1','狼群截路',.95,3,[1,1,2],.95,1,'arc','狼群将沿前路截入，准备闪避扑袭'),
+   phase(0,'harvest-1','蛛潮初起',2.2,1,[0],.48,.8,'arc'),
+   phase(35,'pressure-1','狼群截路',1.5,2,[1,1,2],.8,.9,'arc','狼群将沿前路截入，准备闪避扑袭'),
    phase(52,'rest-1','林隙回息',3,1,[0],.65,.85,'arc'),
    phase(68,'reward-1','妖猿携宝',30,1,[3],1,1,'arc','携宝妖猿将至，击败可得灵材',true),
    phase(86,'harvest-2','灵草引群',.85,4,[0,1,1],.8,1,'ring','散妖将汇入林间，寻找可穿过的空隙'),
@@ -90,7 +90,7 @@ const score=[
  *   remaining places under the live enemy cap of 300; never queue missed batches.
  * - pool entries are indices in REGIONS[regionIndex].enemy. Repeats are weights.
  * - hpScale/speedScale multiply catalog values for these regular spawned enemies,
- *   replacing the former universal HP time ramp. Keep existing elite modifiers.
+ *   with a bounded time/region HP ramp. Keep existing elite modifiers.
  *   Do not apply these fields to the separately scheduled arena boss.
  * - An elite phase has batch=1 and interval longer than the entire phase. Spawn
  *   at most one marked elite per phaseId (persist that fact across saves). Its
@@ -108,7 +108,7 @@ export function encounter(regionIndex,regionTime){
  if(time>=region.duration)return{name:'余妖散尽',phaseId:`${region.id}:settled`,interval:1,batch:0,pool:[],hpScale:1,speedScale:1,formation:'arc',elite:false};
  let index=0;while(index+1<region.phases.length&&time>=region.phases[index+1].start)index++;
  const current=region.phases[index],next=region.phases[index+1];
- const result={name:current.name,phaseId:`${region.id}:${current.id}`,interval:current.interval,batch:current.batch,pool:[...current.pool],hpScale:current.hpScale,speedScale:current.speedScale,formation:current.formation,elite:current.elite};
+ const result={name:current.name,phaseId:`${region.id}:${current.id}`,interval:current.interval,batch:current.batch,pool:[...current.pool],hpScale:current.hpScale*(1+Math.min(time/region.duration,1)*.9+regionIndex*.18),speedScale:current.speedScale,formation:current.formation,elite:current.elite};
  if(next?.warning&&time>=next.start-5){
   const seconds=Math.ceil(next.start-time);
   result.warn={phaseId:`${region.id}:${next.id}`,name:next.name,seconds,text:`${seconds}息后 · ${next.warning}`,formation:next.formation};
