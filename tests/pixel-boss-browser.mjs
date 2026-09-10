@@ -1,0 +1,11 @@
+import{chromium}from'playwright-core';import fs from'node:fs/promises';import{intent}from'./pixel-policy.mjs';
+const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--use-angle=metal','--disable-background-timer-throttling']}),errors=[],results=[];
+try{for(const region of[1,2]){
+ const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('pageerror',e=>errors.push(String(e)));await page.goto(`http://127.0.0.1:4174/artifacts/qa/v4/boss.html?region=${region}`);await page.waitForFunction(()=>window.bossCheck?.ready);
+ const held=new Set(),shots=new Set(),trace=[];let s,seen=false,minHP=Infinity,start=Date.now();
+ while(Date.now()-start<150000){s=await page.evaluate(()=>window.bossCheck.read());minHP=Math.min(minHP,s.hp);trace.push({time:s.time,hp:s.hp,bossHP:s.boss?.hp,phase:s.boss?.bossPhase,attack:s.boss?.attackKind,attackCount:s.boss?.attackCount,p95:s.p95});
+  if(s.boss)seen=true;if((seen&&!s.boss)||s.mode==='lost')break;const a=intent(s),desired=new Set();if(a.x>.3)desired.add('d');if(a.x<-.3)desired.add('a');if(a.y>.3)desired.add('s');if(a.y<-.3)desired.add('w');for(const k of held)if(!desired.has(k)){await page.keyboard.up(k);held.delete(k);}for(const k of desired)if(!held.has(k)){await page.keyboard.down(k);held.add(k);}if(a.dash)await page.keyboard.press('Space');if(a.skill)await page.keyboard.press('e');if(a.item)await page.keyboard.press('q');
+  const shot=s.boss?.bossPhase==='windup'?s.boss.attackKind:s.boss?.bossPhase;if(shot&&!shots.has(shot)){shots.add(shot);await page.screenshot({path:`artifacts/qa/v4/boss-${region}-${shot}.png`});}await page.waitForTimeout(180);
+ }
+ const result={region,mode:s.mode,bossDead:s.bossDead,time:s.time,minHP,attacks:[...new Set(trace.map(t=>t.attack).filter(Boolean))],maxAttacks:Math.max(...trace.map(t=>t.attackCount||0)),p95:s.p95,trace};results.push(result);console.log(JSON.stringify({...result,trace:undefined}));await fs.writeFile('artifacts/qa/v4/boss-combat.json',JSON.stringify({type:'Real-time isolated boss combat using a preset final build and normal keyboard inputs; not a full run',results,errors},null,2));await page.close();
+}}finally{await browser.close();}if(errors.length||results.some(r=>!r.bossDead))throw Error('An isolated boss check failed');

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <meta name="theme-color" content="#152923"><meta name="description" content="从一口飞剑开始，穿行血色禁地、乱星海与虚天殿。御器、养灵、诱妖、布阵，走出自己的修仙路。">
+ <title>青竹劫境 · 人界试炼</title><link rel="preload" as="image" href="./assets/pixel/menu/forbidden-valley.png"><link rel="stylesheet" href="./src2d/style.css">
+</head>
+<body><main id="game" aria-label="青竹劫境">
+ <div id="scene"></div><div class="vignette" aria-hidden="true"></div>
+ <div id="loading" role="status"><div class="loading-seal">剑</div><h1>青竹劫境</h1><p id="load-message">整理行囊……</p><div class="loading-bar"><i id="load-fill"></i></div></div>
+ <section id="hud" class="hidden" aria-label="战斗状态">
+  <div class="vitals"><div class="identity"><img id="hud-portrait" alt=""><div><strong id="hud-name">韩立</strong><span id="realm">炼气 · 一层</span></div></div><div class="resource hp"><i id="hp-fill"></i><span id="hp-label"></span></div><div class="resource mana"><i id="mana-fill"></i><span id="mana-label"></span></div></div>
+  <div class="journey"><span id="region-name">血色禁地</span><b id="clock">00:00</b><span id="stage-progress"></span></div>
+  <div class="top-actions"><button id="bag-button" aria-label="打开行囊">行囊 <kbd>Tab</kbd></button><button id="pause-button" aria-label="暂停游戏">Ⅱ</button></div>
+  <div class="xp-line"><i id="xp-fill"></i></div>
+  <div id="boss-bar" class="hidden"><strong id="boss-name"></strong><div><i id="boss-fill"></i></div></div>
+  <aside class="map-panel"><div><span>寻踪</span><span id="coin-label"></span></div><canvas id="minimap" width="176" height="132" aria-label="区域地图"></canvas><p id="objective"></p></aside>
+  <div id="loadout" aria-label="装备"></div>
+  <div id="skills"><button id="dash"><b>闪</b><span>闪避 <kbd>Space</kbd></span><i></i></button><button id="skill"><b>诀</b><span id="skill-name">御剑集火</span><kbd>E</kbd><i></i></button><button id="flag"><b>阵</b><span id="flag-label">布阵 · 长按回收</span><kbd>F</kbd></button><button id="item"><b id="item-icon">御</b><span id="item-name">金刚符</span><kbd>Q</kbd><em id="item-count"></em></button></div>
+  <div id="joystick" aria-label="移动摇杆"><i></i></div><button id="interact" class="hidden"></button>
+  <p id="tutorial">WASD 移动 · 自动御器 · Space 闪避 · E 法术 · 靠近灵圃或炼器台按 R</p>
+ </section>
+ <div id="toasts" role="status" aria-live="polite"></div><div id="modal" class="hidden" role="dialog" aria-modal="true"></div>
+ <div id="rotate-hint"><b>横屏入境</b><span>旋转手机，展开完整战场</span></div>
+</main><script type="module" src="./build/game.js"></script></body></html>

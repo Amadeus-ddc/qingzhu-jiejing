@@ -1,0 +1,22 @@
+{
+  "name": "qingzhu-jiejing",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/pixel-core.test.mjs tests/pixel-terrain.test.mjs tests/pixel-waves.test.mjs tests/pixel-bosses.test.mjs",
+    "test:balance": "node tests/pixel-balance.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "8.20.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.63.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {build} from 'esbuild';
+const root=fileURLToPath(new URL('../',import.meta.url)),out=path.join(root,'dist');
+const images=['hanli','nangong','yinyue','xuangu','forest','sea','temple','bosses','props','worldkit-forest','worldkit-sea','worldkit-temple','menu/forbidden-valley'];for(const name of images)await fs.access(path.join(root,'assets/pixel',name+'.png'));
+await build({entryPoints:[path.join(root,'src2d/main.js')],bundle:true,format:'esm',target:'es2022',outfile:path.join(root,'build/game.js'),minify:true,legalComments:'eof'});
+await fs.rm(out,{recursive:true,force:true});await fs.mkdir(path.join(out,'src2d'),{recursive:true});
+await fs.copyFile(path.join(root,'pixel.html'),path.join(root,'index.html'));
+for(const f of ['index.html','build'])await fs.cp(path.join(root,f),path.join(out,f),{recursive:true});
+await fs.mkdir(path.join(out,'assets/pixel/menu'),{recursive:true});for(const name of images)await fs.copyFile(path.join(root,'assets/pixel',name+'.png'),path.join(out,'assets/pixel',name+'.png'));
+await fs.copyFile(path.join(root,'src2d/style.css'),path.join(out,'src2d/style.css'));
+const html=await fs.readFile(path.join(out,'index.html'),'utf8');for(const f of [...html.matchAll(/(?:src|href)="(\.\/[^"#]+)"/g)].map(m=>m[1]))await fs.access(path.join(out,f));
+console.log('Pixel game build ready: dist/');
