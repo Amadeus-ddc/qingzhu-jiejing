@@ -10,7 +10,7 @@ for(const character of ['hanli','nangong','yinyue'])for(const build of ['swords'
   if(g.mode==='transition'){g.nextRegion();continue;}
   if(g.mode==='event'){g.chooseEvent(eventChoice(g.eventOptions(),g.player));continue;}
   if(g.time>=nextDecision){action=intent({...g.snapshot(),player:g.player,pois:g.pois,pickups:g.pickups,targets:g.enemies,projectiles:g.projectiles.filter(b=>b.owner==='enemy'),hazards:g.hazards});nextDecision=g.time+.15;}
-  g.tick(1/30,action);g.drainEvents();frames++;minHp=Math.min(minHp,g.player.hp);maxEnemies=Math.max(maxEnemies,g.enemies.length);maxProjectiles=Math.max(maxProjectiles,g.projectiles.length);
+  g.tick(1/30,action);action.stance=false;action.relic=false;g.drainEvents();frames++;minHp=Math.min(minHp,g.player.hp);maxEnemies=Math.max(maxEnemies,g.enemies.length);maxProjectiles=Math.max(maxProjectiles,g.projectiles.length);
  }
  const result={character,build,...g.snapshot(),minHp,maxEnemies,maxProjectiles,cpuSeconds:(performance.now()-started)/1000};results.push(result);console.log(JSON.stringify(result));
 }

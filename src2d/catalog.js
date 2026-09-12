@@ -1,4 +1,4 @@
-export const VERSION=5;
+export const VERSION=6;
 export const SWORD_COUNTS=[1,3,6,12,24,36,48,72];
 export const CHARACTERS={
  hanli:{id:'hanli',name:'韩立',epithet:'青竹御剑 · 炼器养灵',color:0x7fe4c9,starter:'sword',hp:110,speed:108,skill:'御剑集火',description:'从一口飞剑炼起。小瓶缩短灵草培养；青竹进阶后，集火附带辟邪神雷。',unlock:0},
@@ -41,6 +41,10 @@ export const CONSUMABLES={
  brick:{name:'金光砖符宝',icon:'宝',description:'金砖砸落在最强敌人处，造成大范围伤害。'}
 };
 export const ENEMIES={
+ soulbanner:{name:'玄阴幡',atlas:'temple',row:0,hp:320,speed:0,r:16,damage:10,behavior:'relic',xp:0,artifact:true},
+ boneshield:{name:'护魂骨镜',atlas:'temple',row:0,hp:320,speed:0,r:16,damage:0,behavior:'relic',xp:0,artifact:true},
+ seapearl:{name:'护体海珠',atlas:'sea',row:0,hp:320,speed:0,r:16,damage:10,behavior:'relic',xp:0,artifact:true},
+ phantom:{name:'玄骨幻身',atlas:'xuangu',row:0,hp:100,speed:0,r:16,damage:10,behavior:'relic',xp:0,artifact:true},
  spider:{name:'毒蛛',atlas:'forest',row:0,hp:30,speed:46,r:12,damage:11,behavior:'web',xp:2},
  wolf:{name:'山狼',atlas:'forest',row:1,hp:33,speed:78,r:13,damage:12,behavior:'chase',xp:2},
  snake:{name:'赤鳞蟒',atlas:'forest',row:2,hp:48,speed:49,r:14,damage:14,behavior:'shoot',xp:3},
@@ -55,7 +59,7 @@ export const ENEMIES={
  bat:{name:'妖蝠',atlas:'temple',row:3,hp:37,speed:68,r:11,damage:10,behavior:'chase',xp:3},
  dragon:{name:'墨蛟',atlas:'bosses',row:0,hp:5800,speed:58,r:43,damage:28,behavior:'boss',xp:140,boss:true},
  carp:{name:'婴鲤兽',atlas:'bosses',row:1,hp:22000,speed:54,r:44,damage:29,behavior:'boss',xp:180,boss:true,guard:.45},
- sage:{name:'玄骨上人',atlas:'xuangu',row:0,hp:52000,speed:60,r:24,damage:32,behavior:'boss',xp:250,boss:true,guard:.45}
+ sage:{name:'玄骨上人',atlas:'xuangu',row:0,hp:84000,speed:76,r:24,damage:32,behavior:'boss',xp:250,boss:true,guard:.45}
 };
 export const SOURCES=[
  {label:'金蚨子母刃与玄铁飞天盾',url:'https://www.readnovel.com/chapter/22305390000123802/95801083784870020'},

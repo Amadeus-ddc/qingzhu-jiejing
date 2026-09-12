@@ -6,13 +6,14 @@ export function createInput({onPause,onBag,onBlur,onUpgrade}){
   if(e.target instanceof HTMLInputElement)return;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.repeat)return;
   if(['Digit1','Digit2','Digit3'].includes(e.code)&&onUpgrade(Number(e.code.at(-1))-1))return;
+  if(e.code==='KeyC')queue('relic');if(e.code==='KeyZ')queue('stance');if(e.code==='KeyV')queue('cycleRelic');
   if(e.code==='Space')queue('dash');if(e.code==='KeyE')queue('skill');if(e.code==='KeyQ')queue('item');if(e.code==='KeyR')queue('interact');
   if(e.code==='KeyF'){flagStart=performance.now();flagHeld=true;}
   if(e.code==='Digit1')queued.quick=0;if(e.code==='Digit2')queued.quick=1;
   if(e.code==='Escape'||e.code==='KeyP')onPause();if(e.code==='Tab'||e.code==='KeyI')onBag();
  });
  addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyF'&&flagHeld){if(performance.now()-flagStart<550)queue('flag');else queue('recall');flagHeld=false;}});
- for(const id of ['dash','skill','item','interact'])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();queue(id);});
+ for(const id of ['dash','skill','item','interact','relic','stance','cycleRelic'])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();queue(id);});
  const flag=document.getElementById('flag');flag.addEventListener('pointerdown',e=>{e.preventDefault();flag.setPointerCapture(e.pointerId);flagStart=performance.now();flagHeld=true;});flag.addEventListener('pointerup',()=>{if(flagHeld){queue(performance.now()-flagStart<550?'flag':'recall');flagHeld=false;}});flag.addEventListener('pointercancel',()=>flagHeld=false);
  const joy=document.getElementById('joystick'),thumb=joy.querySelector('i');
  function move(e){if(e.pointerId!==pointer)return;const r=joy.getBoundingClientRect();let x=(e.clientX-r.left-r.width/2)/42,y=(e.clientY-r.top-r.height/2)/42;const d=Math.hypot(x,y);if(d>1){x/=d;y/=d;}stick.x=x;stick.y=y;thumb.style.transform=`translate(${x*32}px,${y*32}px)`;}

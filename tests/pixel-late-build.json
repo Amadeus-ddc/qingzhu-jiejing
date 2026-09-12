@@ -1,0 +1,40 @@
+{
+  "maxHp": 155,
+  "maxMana": 100,
+  "speed": 108,
+  "level": 49,
+  "spirit": 3597,
+  "materials": {
+    "bamboo": 3,
+    "gold": 8
+  },
+  "weapons": {
+    "sword": 8,
+    "magnet": 5,
+    "cauldron": 5,
+    "ice": 5
+  },
+  "passives": {
+    "mingwang": 5,
+    "qingyuan": 5,
+    "xuanyin": 5,
+    "dayan": 5
+  },
+  "consumables": {
+    "shield": 8,
+    "hide": 15,
+    "burrow": 19,
+    "thunder": 12,
+    "ice": 14,
+    "brick": 12
+  },
+  "quick": [
+    "shield",
+    "ice"
+  ],
+  "quickIndex": 0,
+  "swordCrafted": true,
+  "swordAwakened": true,
+  "arrayRecipe": true,
+  "arrayType": "sword"
+}
