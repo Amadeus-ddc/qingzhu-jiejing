@@ -1,3 +1,4 @@
+import {RELICS} from './relics.js';
 import {CHARACTERS,WEAPONS,SWORD_COUNTS} from './catalog.js';
 
 const fmt=n=>Number(n.toFixed(2)).toString();
@@ -69,7 +70,7 @@ export function upgradeDetails(g,u){
    case 'magnet':headline=`伤敌束宽 ${isNew?fmt((18+rank*3)*2):change((18+prev*3)*2,(18+rank*3)*2)}`;detail=`${growth}；清弹范围保持不变。`;break;
    case 'dragon':headline=`每程贯穿 ${isNew?fmt(8+rank):change(8+prev,8+rank)} 敌`;detail=`${growth}；双器往返时分别计算贯穿次数。`;break;
   }
-  return{headline,detail:isNew?purposes[u.id]:detail,synergy:weaponSynergy(p,u.id),slot};
+  return{headline,detail:isNew?purposes[u.id]:detail,synergy:[weaponSynergy(p,u.id),`主动祭器 · ${RELICS[u.id].name}（C）`].filter(Boolean).join('；'),slot};
  }
  const prev=p.passives[u.id]||0;
  let headline='',detail='',synergy='';
@@ -97,7 +98,7 @@ export function upgradeDetails(g,u){
    detail=`受伤减免 ${change(prev*3.5,rank*3.5,'%')}；即刻回复 ${fmt(Math.min(20,p.maxHp+9-p.hp))} 生命。`;break;
   case 'xuanyin':
    headline=`控制时长 ${multiplier(1+prev*.15,1+rank*.15)}`;
-   detail=`强化蛛网、霜蚣与冰焰；非首领击杀回血 ${change(prev*.07,rank*.07)}。`;
+   detail=`强化蛛网、霜蚣与冰焰；非首领击杀回血 ${change(prev*.018,rank*.018)}。`;
    synergy=namesLine('当前受益 · ',ownedNames(p,chilledWeapons));break;
   case 'sunv':
    headline=`灼烧伤害 ${multiplier(1+prev*.18,1+rank*.18)}`;

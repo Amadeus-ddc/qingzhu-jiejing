@@ -3,7 +3,9 @@ import {clamp,dist,angle,TAU,SpatialHash,inTriangle,pointSegment} from './math.j
 import {WORLDS,walkable,clearLine,moveOnTerrain,navigation,safePosition,CHUNK_SIZE,chunkAt,offscreenPosition,worldChunk} from './world.js';
 import {encounter} from './waves.js';
 import {turnToward} from './animation.js';
-import {stepBoss,strikeBoss} from './bosses.js';
+import {stepBoss,strikeBoss,staggerBoss,stepBossRelic,breakRelic} from './bosses.js';
+import {castRelic,toggleStance,cycleRelic} from './relics.js';
+import {hazardContains} from './hazards.js';
 import {updateWeapons,updateSwords,updateProjectiles,updateZones,castCharacterSkill,useConsumable} from './combat.js';
 
 export class BattleCore{
@@ -15,6 +17,7 @@ export class BattleCore{
   const c=CHARACTERS[this.character],maxHp=c.hp*(1+clamp(this.meta.hpRank,0,2)*.05);
   this.rng=this.seed;this.nextId=1;this.mode='title';this.time=0;this.regionIndex=0;this.regionTime=0;this.kills=0;this.score=0;this.bossSpawned=false;this.bossDead=false;this.spawnTimer=1;this.encounterId=null;this.warnId=null;this.lastElitePhase=null;this.upgrades=[];this.events=[];this.enemies=[];this.projectiles=[];this.zones=[];this.swords=[];this.pickups=[];this.hazards=[];this.flags=[];this.array=null;this.pois=[];this.decoy=null;this.weaponClocks={};this.rewardClaimed=false;this.claimId=`${this.seed}-${this.character}-${Date.now()}`;this.discoveries=[];this.currentEvent=null;this.poiRecords={};this.poiChunk='';this.bossHome=null;this.visibleBounds={halfWidth:505,halfHeight:330};
   this.player={x:0,y:110,r:11,hp:maxHp,maxHp,mana:100,maxMana:100,speed:c.speed,level:1,xp:0,xpNext:12,spirit:30,materials:{bamboo:0,gold:0},greenLiquid:this.character==='hanli'?2:0,weapons:{[c.starter]:1},passives:{},consumables:{shield:2,hide:1,burrow:1,thunder:1,ice:1,brick:0},quick:['shield','thunder'],quickIndex:0,dx:0,dy:1,moving:false,dash:0,dashTime:0,invuln:0,skill:0,castTime:0,hurtTime:0,shield:0,hidden:0,focus:0,swordCrafted:false,swordAwakened:false,arrayRecipe:false,arrayType:'five',attackClock:.7,guardClock:0};
+  Object.assign(this.player,{stance:'guard',relic:c.starter,relicCooldown:0,relicTotal:12,parryClock:0});
   this.createRegion();this.syncSwords();
  }
  get region(){return REGIONS[this.regionIndex];}
@@ -62,15 +65,26 @@ export class BattleCore{
   if(!ENEMIES[kind])return null;
   if(x===undefined){const at=offscreenPosition(this.regionIndex,this.player,{r:ENEMIES[kind].r,angle:this.random()*TAU,...this.visibleBounds});if(!at)return null;x=at.x;y=at.y;}
   const c=ENEMIES[kind],pos=safePosition(this.regionIndex,x,y,c.r*(elite?1.25:1)),scale=c.boss?1:profile?.hpScale??1;
-  const e={...c,id:this.id(),kind,x:pos.x,y:pos.y,hp:c.hp*scale*(elite?3.6:1),maxHp:c.hp*scale*(elite?3.6:1),speed:c.speed*(elite?1.06:1)*(profile?.speedScale??1),elite,poiId,age:0,hit:0,attack:1+this.random()*2,windup:0,charge:0,dx:0,dy:1,slow:0,freeze:0,burn:0,burnDamage:0,burnTick:0,guardHit:0,attackCount:0,action:0};
+  const e={...c,id:this.id(),kind,x:pos.x,y:pos.y,hp:c.hp*scale*(elite?3.6:1),maxHp:c.hp*scale*(elite?3.6:1),speed:c.speed*(elite?1.06:1)*(profile?.speedScale??1),elite,poiId,age:0,hit:0,attack:1+this.random()*2,windup:0,charge:0,dx:0,dy:1,slow:0,freeze:0,burn:0,burnDamage:0,burnTick:0,guardHit:0,attackCount:0,action:0,exposed:0,reactionLock:0};
   if(elite)e.r*=1.25;this.enemies.push(e);if(c.boss)this.emit('boss',{name:c.name});return e;
  }
  nearest(x,y,range=400){let target=null,dmin=range*range;for(const e of this.hash.query(x,y,range)){if(e.hp<=0)continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<dmin&&clearLine(this.regionIndex,{x,y},e,0,true)){dmin=d;target=e;}}return target;}
  damage(e,amount,kind='hit'){
-  if(e.hp<=0)return;if(e.guard)amount*=e.bossPhase==='recover'?1.3:e.guard;e.hp-=amount;e.hit=.12;this.emit('hit',{x:e.x,y:e.y-15,amount,kind});
+  if(e.hp<=0)return;
+  const hot=['fire','firefield','ring'].includes(kind),cold=['ice','frost'].includes(kind);
+  if((hot&&e.freeze>0||cold&&e.burn>0)&&!(e.reactionLock>0)){
+   e.reactionLock=1.2;amount*=1.7;e.freeze=0;e.burn=0;
+   if(e.boss)staggerBoss(this,e,28);this.emit('blast',{x:e.x,y:e.y,r:50,color:0xc4e9f0});
+   if(e.boss)this.notify('寒热爆裂 · 削减定力');
+  }
+  if(e.guard){const shield=this.enemies.some(q=>q.ownerId===e.id&&['boneshield','seapearl'].includes(q.kind)&&q.hp>0);amount*=e.bossPhase==='recover'?1.3:e.exposed>0?.8:shield?.28:e.guard;}
+  else if(e.exposed>0)amount*=1.2;
+  if(e.artifact&&['relic','bladeburst','brick','lightning'].includes(kind))amount*=1.6;
+  e.hp-=amount;e.hit=.12;this.emit('hit',{x:e.x,y:e.y-15,amount,kind});
   if(e.hp>0)return;
+  if(e.artifact){breakRelic(this,e);this.emit('kill',{x:e.x,y:e.y});return;}
   this.kills++;this.score+=e.boss?1000:e.elite?120:10;this.emit('kill',{x:e.x,y:e.y,boss:e.boss,elite:e.elite});
-  if(e.boss){this.bossDead=true;this.bossHome={x:e.x,y:e.y};this.streamPOIs(true);this.player.materials[this.region.material]++;this.player.spirit+=70;this.player.hp=Math.min(this.player.maxHp,this.player.hp+25);this.player.xp+=e.xp;this.notify(`${e.name}已败 · ${this.region.material==='bamboo'?'金雷竹':'庚精'} +1`);}
+  if(e.boss){for(const q of this.enemies)if(q.ownerId===e.id)q.hp=0;this.hazards=[];this.projectiles=this.projectiles.filter(q=>q.owner!=='enemy');this.bossDead=true;this.bossHome={x:e.x,y:e.y};this.streamPOIs(true);this.player.materials[this.region.material]++;this.player.spirit+=70;this.player.hp=Math.min(this.player.maxHp,this.player.hp+25);this.player.xp+=e.xp;this.notify(`${e.name}已败 · ${this.region.material==='bamboo'?'金雷竹':'庚精'} +1`);}
   else{
    this.pickups.push({id:this.id(),x:e.x,y:e.y,value:e.xp*(e.elite?8:1),kind:e.elite?'vacuum':this.random()<.025?'heal':'xp',age:0});
    if(this.random()<.38||e.elite)this.player.spirit+=e.elite?25:1;
@@ -179,12 +193,13 @@ export class BattleCore{
  }
  tick(dt,input={}){
   if(this.mode!=='playing')return;dt=clamp(dt,0,.05);this.time+=dt;this.regionTime+=dt;const p=this.player;
-  for(const key of ['dash','dashTime','invuln','skill','castTime','hurtTime','hidden','focus'])p[key]=Math.max(0,p[key]-dt);
+  for(const key of ['dash','dashTime','invuln','skill','castTime','hurtTime','hidden','focus','relicCooldown','parryClock'])p[key]=Math.max(0,p[key]-dt);
   p.mana=Math.min(p.maxMana,p.mana+dt*(3.5+(p.passives.chongyuan||0)*.65));
+  if(p.stance==='assault'&&p.weapons.sword&&this.enemies.some(e=>e.hp>0&&dist(e,p)<460)){p.mana=Math.max(0,p.mana-dt*(6+this.swordCount*.07));if(p.mana<1){p.stance='guard';this.notify('灵力将尽 · 飞剑归守');}}
   let mx=input.x||0,my=input.y||0,d=Math.hypot(mx,my);if(d>1){mx/=d;my/=d;}p.moving=d>.1;if(p.moving&&p.dashTime===0){p.dx=mx/(Math.hypot(mx,my)||1);p.dy=my/(Math.hypot(mx,my)||1);}
   if(input.dash&&p.dash<=0){p.dash=2.7;p.dashTime=.2;p.invuln=Math.max(p.invuln,.45);p.skill=Math.max(0,p.skill-(p.passives.sunv||0)*.6);this.emit('dash',{x:p.x,y:p.y});}
   if(p.dashTime>0){mx=p.dx;my=p.dy;}const speed=p.dashTime>0?410:p.speed;moveOnTerrain(this.regionIndex,p,mx*speed*dt,my*speed*dt,p.dashTime<=0);this.streamPOIs();
-  if(input.skill)castCharacterSkill(this);if(input.item)useConsumable(this);if(input.quick!==undefined)p.quickIndex=clamp(input.quick,0,1);if(input.flag)this.placeFlag();if(input.recall)this.recallArray();if(input.interact)this.interact();if(this.mode!=='playing')return;
+  if(input.stance)toggleStance(this);if(input.cycleRelic)cycleRelic(this);if(input.relic)castRelic(this);if(input.skill)castCharacterSkill(this);if(input.item)useConsumable(this);if(input.quick!==undefined)p.quickIndex=clamp(input.quick,0,1);if(input.flag)this.placeFlag();if(input.recall)this.recallArray();if(input.interact)this.interact();if(this.mode!=='playing')return;
   this.updateEncounters(dt);
   if(!this.bossSpawned&&this.regionTime>=this.region.bossAt){this.bossSpawned=true;this.bossHome=offscreenPosition(this.regionIndex,p,{r:ENEMIES[this.region.boss].r,angle:-Math.PI/2,...this.visibleBounds})||safePosition(this.regionIndex,p.x,p.y-420,ENEMIES[this.region.boss].r);this.spawn(this.region.boss,this.bossHome.x,this.bossHome.y);}
   this.hash.rebuild(this.enemies);updateWeapons(this,dt);updateSwords(this,dt);updateProjectiles(this,dt);updateZones(this,dt);this.updateArray(dt);this.updateEnemies(dt);this.updateWorld(dt);
@@ -209,9 +224,10 @@ export class BattleCore{
  updateEnemies(dt){
   const p=this.player;if(this.decoy){this.decoy.life-=dt;if(this.decoy.life<=0)this.decoy=null;}
   for(const e of this.enemies){
-   if(e.hp<=0)continue;e.age+=dt;for(const key of ['hit','slow','freeze','action','guardHit'])e[key]=Math.max(0,e[key]-dt);e.attack-=dt;
+   if(e.hp<=0)continue;e.age+=dt;for(const key of ['hit','slow','freeze','action','guardHit','exposed','reactionLock'])e[key]=Math.max(0,e[key]-dt);e.attack-=dt;
    if(e.burn>0){e.burn-=dt;e.burnTick-=dt;if(e.burnTick<=0){e.burnTick=.6;this.damage(e,e.burnDamage,'burn');}}
    if(e.hp<=0||e.freeze>0){e.moving=false;continue;}
+   if(e.artifact){stepBossRelic(this,e,dt);continue;}
    if(e.boss){stepBoss(this,e,dt);if(dist(e,p)<e.r+p.r)this.hurt(e.damage);continue;}
    let target=this.decoy&&dist(e,this.decoy)<320?this.decoy:p;
    const growing=this.pois.find(q=>q.state==='growing'&&dist(e,q)<190);if(growing)target=growing;
@@ -238,14 +254,14 @@ export class BattleCore{
    if(dist(e,p)<e.r+p.r)this.hurt(e.damage);
    if(!e.boss&&dist(e,p)>1050){const q=offscreenPosition(this.regionIndex,p,{r:e.r,angle:this.random()*TAU,...this.visibleBounds});if(q){e.x=q.x;e.y=q.y;e.routeTime=0;}}
   }
-  for(const e of this.enemies){if(e.hp<=0||e.boss)continue;for(const b of this.hash.query(e.x,e.y,45)){if(b.id<=e.id||b.hp<=0||b.boss)continue;const dx=b.x-e.x,dy=b.y-e.y,d=Math.hypot(dx,dy),min=(e.r+b.r)*.66;if(d>.01&&d<min){const push=Math.min((min-d)*.16,3);this.move(e,-dx/d*push,-dy/d*push);this.move(b,dx/d*push,dy/d*push);}}}
+  for(const e of this.enemies){if(e.hp<=0||e.boss||e.artifact)continue;for(const b of this.hash.query(e.x,e.y,45)){if(b.id<=e.id||b.hp<=0||b.boss||b.artifact)continue;const dx=b.x-e.x,dy=b.y-e.y,d=Math.hypot(dx,dy),min=(e.r+b.r)*.66;if(d>.01&&d<min){const push=Math.min((min-d)*.16,3);this.move(e,-dx/d*push,-dy/d*push);this.move(b,dx/d*push,dy/d*push);}}}
  }
  bossAttack(e){
   strikeBoss(this,e);
  }
  updateWorld(dt){
   const p=this.player;
-  for(const h of this.hazards){h.timer-=dt;h.age+=dt;if(h.timer<=0){if(dist(h,p)<h.r+p.r)this.hurt(h.damage);if(!h.armed){h.armed=true;this.emit('blast',{x:h.x,y:h.y,r:h.r,color:h.kind==='venom'?0xafa668:0xff806b});}if(h.activeFor)h.activeFor-=dt;}}
+  for(const h of this.hazards){h.timer-=dt;h.age+=dt;if(h.timer<=0){if(hazardContains(h,p))this.hurt(h.damage);if(!h.armed){h.armed=true;this.emit('blast',{x:h.x,y:h.y,r:h.r,color:h.kind==='venom'?0xafa668:0xff806b});}if(h.activeFor)h.activeFor-=dt;}}
   this.hazards=this.hazards.filter(h=>h.timer>0||h.activeFor>0);
   p.gatherTime=Math.max(0,(p.gatherTime||0)-dt);const magnet=70*(1+clamp(this.meta.pickupRank,0,3)*.05)+(this.character==='yinyue'?24:0);
   for(const gem of this.pickups){gem.age+=dt;const d=dist(gem,p);if(d<magnet||p.gatherTime>0)gem.attracted=true;if(gem.attracted){const step=Math.min(d,(p.gatherTime>0?550:270)*dt);gem.x+=(p.x-gem.x)/(d||1)*step;gem.y+=(p.y-gem.y)/(d||1)*step;}if(d<16){gem.dead=true;p.xp+=gem.value;this.emit('pickup',{value:gem.value,kind:gem.kind});if(gem.kind==='heal')p.hp=Math.min(p.maxHp,p.hp+12);if(gem.kind==='vacuum'){p.gatherTime=3.5;this.notify('聚灵珠 · 收拢散落灵气');this.emit('gather',{x:p.x,y:p.y});}}}
@@ -258,8 +274,10 @@ export class BattleCore{
  snapshot(){const p=this.player;return{version:VERSION,mode:this.mode,character:this.character,region:this.region.name,regionIndex:this.regionIndex,time:Math.round(this.time*10)/10,regionTime:Math.round(this.regionTime),realm:this.realm,level:p.level,hp:Math.round(p.hp),maxHp:p.maxHp,mana:Math.round(p.mana),spirit:p.spirit,weapons:{...p.weapons},materials:{...p.materials},swordCount:this.swordCount,swordAllocation:{orbit:this.swords.filter(s=>s.mode==='orbit').length,attacking:this.swords.filter(s=>s.mode==='attack'||s.mode==='return').length,array:this.swords.filter(s=>s.mode==='array').length},enemies:this.enemies.length,kills:this.kills,bossDead:this.bossDead,upgrades:this.upgrades.map(c=>({...c})),nearby:this.nearestPOI()?.name||null};}
  save(){const data={version:VERSION};for(const k of Object.keys(this))if(k!=='hash'&&k!=='events')data[k]=this[k];return JSON.stringify(data);}
  static load(text){
-  const d=JSON.parse(text);if(![4,VERSION].includes(d.version)||!CHARACTERS[d.character]||!d.player||!Number.isFinite(d.player.hp)||!Number.isFinite(d.time)||d.time<0||d.time>7200||!REGIONS[d.regionIndex])throw new Error('存档不兼容');
+  const d=JSON.parse(text);if(![4,5,VERSION].includes(d.version)||!CHARACTERS[d.character]||!d.player||!Number.isFinite(d.player.hp)||!Number.isFinite(d.time)||d.time<0||d.time>7200||!REGIONS[d.regionIndex])throw new Error('存档不兼容');
   const g=new BattleCore({seed:d.seed,character:d.character,meta:d.meta});for(const key of Object.keys(g))if(key!=='hash'&&key!=='events'&&key in d)g[key]=d[key];g.events=[];
+  g.player={stance:'guard',relic:CHARACTERS[g.character].starter,relicCooldown:0,relicTotal:12,parryClock:0,...g.player};if(!g.player.weapons[g.player.relic])g.player.relic=Object.keys(g.player.weapons)[0]||g.player.relic;
+  if(d.version<6)for(const e of g.enemies)if(e.boss){e.bossPhase='stalk';e.windup=0;e.charge=0;e.phaseTimer=0;e.attack=1;e.attackKind=null;}
   if(d.version===4){g.poiRecords={};g.poiChunk='';g.pois=[];g.currentEvent=null;if(g.mode==='event')g.mode='playing';for(const e of g.enemies){e.routeTime=0;delete e.navPoint;delete e.navTargetX;delete e.navTargetY;}g.bossHome??={x:g.player.x,y:g.player.y};}
   g.streamPOIs(true);for(const body of [g.player,...g.enemies]){const pos=safePosition(g.regionIndex,body.x,body.y,body.r);body.x=pos.x;body.y=pos.y;}if(g.mode==='playing')g.mode='paused';g.hash.rebuild(g.enemies);g.syncSwords();return g;
  }

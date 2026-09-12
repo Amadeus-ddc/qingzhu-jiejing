@@ -1,4 +1,5 @@
 import {clearLine,safePosition} from './world.js';
+import {staggerBoss} from './bosses.js';
 import {WEAPONS} from './catalog.js';
 import {TAU,clamp,dist,angle,pointSegment,inTriangle} from './math.js';
 
@@ -42,7 +43,7 @@ export function updateSwords(g,dt){
  const p=g.player,n=g.swords.length;if(!n)return;
  p.attackClock-=dt;p.guardClock-=dt;const guardPulse=p.guardClock<=0;if(guardPulse)p.guardClock=.18;
  const target=g.nearest(p.x,p.y,p.focus>0?460:340),rank=p.weapons.sword;
- const dmg=damageFor(g,'sword')*(p.swordCrafted?1.2:1)*(p.focus>0?1.35:1);
+ const dmg=damageFor(g,'sword')*(p.swordCrafted?1.2:1)*(p.focus>0?1.35:1)*(p.stance==='assault'?1.2:1);
  const canFire=p.attackClock<=0&&target;
  let fired=false;
  for(const s of g.swords){
@@ -58,8 +59,8 @@ export function updateSwords(g,dt){
    const rings=n>24?3:n>6?2:1,ring=s.index%rings,perRing=Math.ceil(n/rings),i=Math.floor(s.index/rings);
    const a=i/Math.max(perRing,1)*TAU+g.time*(ring%2?-.43:.52),r=n===1?32:45+ring*24+(p.passives.qingyuan||0)*2;
    s.x=p.x+Math.cos(a)*r;s.y=p.y+Math.sin(a)*r*.65-8;s.a=a+Math.PI/2;
-   if(guardPulse)for(const e of g.hash.query(s.x,s.y,40))if(e.hp>0&&e.guardHit<=0&&dist(s,e)<e.r+12){g.damage(e,dmg*.35);e.guardHit=.28;}
-   if(canFire&&!fired&&s.cooldown<=0){s.mode='attack';s.target=target.id;s.life=1.2;fired=true;p.attackClock=Math.max(.11,1.15/Math.pow(n,.45))/g.haste/(p.focus>0?1.6:1);}
+   if(guardPulse&&p.stance!=='assault')for(const e of g.hash.query(s.x,s.y,40))if(e.hp>0&&e.guardHit<=0&&dist(s,e)<e.r+12){g.damage(e,dmg*.22);e.guardHit=.28;}
+   if(canFire&&!fired&&s.cooldown<=0){s.mode='attack';s.target=target.id;s.life=1.2;fired=true;p.attackClock=Math.max(.11,1.15/Math.pow(n,.45))/g.haste/(p.focus>0?1.6:1)*(p.stance==='assault'?.72:1.12);}
   }else if(s.mode==='attack'){
    s.life-=dt;const e=g.enemies.find(e=>e.id===s.target&&e.hp>0);
    if(!e||s.life<=0){s.mode='return';continue;}
@@ -82,12 +83,13 @@ export function updateProjectiles(g,dt){
   b.x+=b.dx*b.speed*dt;b.y+=b.dy*b.speed*dt;
   if(!clearLine(g.regionIndex,{x:oldX,y:oldY},b,0,true)){b.life=-1;continue;}
   if(b.owner==='enemy'){
+   if(p.stance==='guard'&&g.swordCount>=6&&p.parryClock<=0&&p.mana>=3&&g.swords.some(s=>s.mode==='orbit'&&pointSegment(s.x,s.y,oldX,oldY,b.x,b.y)<14+b.r)){b.life=-1;p.mana-=3;p.parryClock=.45;g.emit('blast',{x:b.x,y:b.y,r:18,color:0xa9e6c8});continue;}
    if(p.hidden<=0&&pointSegment(p.x,p.y,oldX,oldY,b.x,b.y)<p.r+b.r){g.hurt(b.damage);b.life=-1;}
   }else{
    if((b.kind==='ice'||b.kind==='beetles')&&b.age-(b.hitReset||0)>.65){b.hits=[];b.hitReset=b.age;}
    for(const e of g.hash.query(b.x,b.y,b.r+70)){
     if(e.hp<=0||b.hits.includes(e.id)||pointSegment(e.x,e.y,oldX,oldY,b.x,b.y)>e.r+b.r)continue;
-    g.damage(e,b.damage,b.kind);b.hits.push(e.id);
+    g.damage(e,b.damage,b.kind);if(b.breakPower&&e.hp>0&&e.boss)staggerBoss(g,e,b.breakPower);b.hits.push(e.id);
     if(b.kind==='ring'||b.kind==='fire')burn(g,e,b.damage*.18);
     if(['ice','frost'].includes(b.kind)){e.slow=Math.max(e.slow,1.4*g.controlScale);if(b.kind==='frost')e.freeze=Math.max(e.freeze,(e.boss?.15:.5)*g.controlScale);}
     if(b.blast){for(const q of g.hash.query(b.x,b.y,b.blast+40))if(q.hp>0&&q.id!==e.id&&dist(q,b)<b.blast+q.r){g.damage(q,b.damage*.7,'fire');burn(g,q,b.damage*.12);}g.emit('blast',{x:b.x,y:b.y,r:b.blast,color:fireColor});}
@@ -117,10 +119,10 @@ export function castCharacterSkill(g){
  const power=g.damageScale*(1+(p.passives.chongyuan||0)*.14);
  if(g.character==='hanli'){
   p.focus=5;g.emit('focus',{x:p.x,y:p.y,crafted:p.swordCrafted});
-  if(p.swordCrafted){for(const e of g.hash.query(p.x,p.y,240))if(e.hp>0&&dist(p,e)<240){g.damage(e,36*power,'lightning');e.freeze=e.boss?.2:.8;g.emit('lightning',{x:p.x,y:p.y-15,ex:e.x,ey:e.y-10});}}
+  if(p.swordCrafted){for(const e of g.hash.query(p.x,p.y,240))if(e.hp>0&&dist(p,e)<240){g.damage(e,36*power,'lightning');if(e.boss)staggerBoss(g,e,38);e.freeze=e.boss?.2:.8;g.emit('lightning',{x:p.x,y:p.y-15,ex:e.x,ey:e.y-10});}}
  }else if(g.character==='nangong'){
   const target=g.nearest(p.x,p.y,270)||p;g.zone('firefield',target.x,target.y,125,28*power,5,{interval:.65});
-  for(const e of g.hash.query(target.x,target.y,160))if(e.hp>0&&dist(target,e)<145){if(e.burn>0)g.damage(e,e.burnDamage*6,'fire');e.freeze=e.boss?.2:.8;}
+  for(const e of g.hash.query(target.x,target.y,160))if(e.hp>0&&dist(target,e)<145){if(e.burn>0)g.damage(e,e.burnDamage*6,'fire');if(e.boss)staggerBoss(g,e,38);e.freeze=e.boss?.2:.8;}
   g.emit('blast',{x:target.x,y:target.y,r:125,color:0xffb076});
  }else{
   g.decoy={x:p.x,y:p.y,life:5};g.move(p,p.dx*135,p.dy*135);p.hidden=2;p.invuln=1.1;
@@ -143,7 +145,7 @@ export function useConsumable(g){
  if(id==='brick'){
   const target=g.enemies.filter(e=>e.hp>0&&dist(e,p)<450).sort((a,b)=>b.hp-a.hp)[0]||p;
   for(const e of g.hash.query(target.x,target.y,190))if(e.hp>0&&dist(target,e)<155){g.damage(e,300*g.damageScale,'brick');e.freeze=e.boss?.3:1.5;}
-  g.emit('brick',{x:target.x,y:target.y,r:155});
+  if(target.boss&&target.hp>0)staggerBoss(g,target,70);g.emit('brick',{x:target.x,y:target.y,r:155});
  }
  return true;
 }

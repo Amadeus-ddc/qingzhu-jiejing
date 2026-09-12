@@ -1,3 +1,5 @@
+import {hazardContains} from '../src2d/hazards.js';
+import {RELICS} from '../src2d/relics.js';
 import {navigation,walkable,safePosition,clearLine} from '../src2d/world.js';
 // A controller using only observable state and normal game actions. Shared by
 // fast deterministic simulations and the real-time browser play-through.
@@ -24,11 +26,15 @@ export function intent(s){
  if(!goal){if(boss){const a=Math.atan2(p.y-boss.y,p.x-boss.x)+.45;const radius=s.regionIndex===0?125:175;goal={x:boss.x+Math.cos(a)*radius,y:boss.y+Math.sin(a)*radius};}else goal={x:Math.cos(t*.033)*380,y:Math.sin(t*.033)*340};}
  const originalGoal=goal,projected=safePosition(s.regionIndex,goal.x,goal.y,p.r);const route=navigation(s.regionIndex,p.r).direction(p,projected);let vx=route.x,vy=route.y;
  for(const e of targets){const ed=d(p,e),safe=e.boss?e.r+80:e.r+48;if(ed<safe){const w=(safe-ed)/safe*4;vx+=(p.x-e.x)/(ed||1)*w;vy+=(p.y-e.y)/(ed||1)*w;}}
- for(const h of s.hazards||[]){const hd=d(p,h);if(hd<h.r+38){vx+=(p.x-h.x)/(hd||1)*3;vy+=(p.y-h.y)/(hd||1)*3;}}
+ for(const h of s.hazards||[]){if(!hazardContains(h,p,28))continue;
+  if(h.shape==='line'){const lx=h.ex-h.x,ly=h.ey-h.y,n=Math.hypot(lx,ly)||1,side=(p.x-h.x)*(-ly)+(p.y-h.y)*lx>=0?1:-1;vx+=-ly/n*side*4;vy+=lx/n*side*4;}
+  else{const hd=d(p,h)||1,inside=h.inner&&hd<(h.inner+h.r)/2?-1:1;vx+=(p.x-h.x)/hd*3*inside;vy+=(p.y-h.y)/hd*3*inside;}
+ }
  for(const b of s.projectiles||[]){if(b.owner!=='enemy')continue;const hd=d(p,b);if(hd<65){vx+=(p.x-b.x)/(hd||1)*2;vy+=(p.y-b.y)/(hd||1)*2;}}
  if(!walkable(s.regionIndex,p.x+vx*30,p.y+vy*30,p.r)){vx=route.x;vy=route.y;}
- const danger=targets.some(e=>d(p,e)<e.r+50)||s.hazards?.some(h=>d(p,h)<h.r+15&&h.timer<.4);
- return{x:vx,y:vy,dash:danger&&p.dash<=0,skill:p.skill<=0&&targets.some(e=>d(p,e)<300),item:p.shield<10&&p.consumables[p.quick[p.quickIndex]]>0&&danger,interact:pois.some(q=>q.id===goal.id)&&d(p,goal)<58,goal:goal.kind||'kite'};
+ const danger=targets.some(e=>d(p,e)<e.r+50)||s.hazards?.some(h=>hazardContains(h,p,15)&&h.timer<.4);
+ const desiredStance=boss?.bossPhase==='recover'&&p.mana>45?'assault':'guard',def=RELICS[p.relic];
+ return{stance:!!p.weapons.sword&&p.stance!==desiredStance,relic:!!def&&p.relicCooldown<=0&&p.mana>=def.cost&&targets.some(e=>d(p,e)<280)&&(boss?boss.bossPhase==='windup'||boss.bossPhase==='recover':danger),x:vx,y:vy,dash:danger&&p.dash<=0,skill:p.skill<=0&&targets.some(e=>d(p,e)<300),item:p.shield<10&&p.consumables[p.quick[p.quickIndex]]>0&&danger,interact:pois.some(q=>q.id===goal.id)&&d(p,goal)<58,goal:goal.kind||'kite'};
 }
 export function eventChoice(options,p){
  for(const id of ['bamboo','awaken','array','chest','elite','lure'])if(options.some(o=>o.id===id&&!o.disabled))return id;

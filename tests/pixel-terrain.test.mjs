@@ -95,7 +95,7 @@ test('enemy bodies, summons and deployed puppets spawn on usable ground',()=>{
   }
   g.player.weapons={puppet:1};g.weaponClocks.puppet=0;g.spawn(g.region.enemy[0],g.player.x+100,g.player.y);g.hash.rebuild(g.enemies);updateWeapons(g,.02);const puppet=g.zones.find(z=>z.kind==='puppet');assert.ok(puppet);assertSafe(region,puppet,'puppet');
  }
- const g=game(2),boss=g.spawn('sage',8900,-9500);boss.attackCount=3;g.bossAttack(boss);assert.equal(g.enemies.filter(e=>e.kind==='ghost').length,4);for(const e of g.enemies)assertSafe(2,e,'summon');
+ const g=game(2),boss=g.spawn('sage',8900,-9500);boss.attackKind='banner';g.bossAttack(boss);assert.equal(g.enemies.filter(e=>e.kind==='soulbanner').length,1);for(const e of g.enemies)assertSafe(2,e,'summon');
 });
 test('projectiles hit thin rock edges while water only blocks walking',()=>{
  for(let region=0;region<3;region++)for(const[cx,cy]of[[0,0],[7,-7]]){
