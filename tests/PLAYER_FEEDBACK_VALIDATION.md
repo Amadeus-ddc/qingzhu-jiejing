@@ -20,8 +20,29 @@
 
 本地证据在 `artifacts/qa/player-feedback/`，包含过程截图、正常取得的存档与结果；六组模拟在 `artifacts/qa/pixel-balance.json`。过程证据不随公开静态站打包。
 
-## 发布
+## 已发布版本与证据
 
-GitHub PR 的工作流执行安装、44 项规则测试与构建。合入 `main` 后执行相同检查并发布 `dist/` 到 GitHub Pages。Sites 使用同一份经过验证的运行时源码更新现有公开游戏。
+2026-09-11（Asia/Shanghai）完成的发布链如下。2026-09-12 文档收尾再次回读 PR、Pages 工作流和 Sites 部署状态，结果仍与下表一致。
+
+| 阶段 | 实际结果与来源 |
+| --- | --- |
+| 开发分支 | `codex/player-feedback-pacing`，功能提交 `687fed5` |
+| 本地测试后合并 | 开发主线 `codex/pixel-human-realm`，发布源码提交 `535eb675454b3459730d1e1ac0b263c96e553278` |
+| GitHub PR | [PR #1](https://github.com/Amadeus-ddc/qingzhu-jiejing/pull/1) 已合并，合并提交 `b044b8e139747ddb020bc96ce4483d553b206377` |
+| GitHub Pages | [发布工作流](https://github.com/Amadeus-ddc/qingzhu-jiejing/actions/runs/34512649447) 的安装、44 项规则测试、构建与部署均成功；[备用试玩](https://amadeus-ddc.github.io/qingzhu-jiejing/) |
+| Sites | 第 5 版公开部署成功；[原试玩](https://qingzhu-jiejing.amajobs.chatgpt.site) |
+| 上线实测 | 2026-09-11 两个域名分别在未登录浏览器中返回 HTTP 200，计时推进、目标可见、暂停稳定；无页面脚本错误或失败请求 |
+
+两个线上脚本在发布验收时均与本地测试构建一致，SHA-256 为 `9430f4ae848ee289c10cb3494f7db2b30b9b1227b864fd6e45470d6db1ec3cbc`。这是该次发布的校验值，后续修改需要重新核对。
+
+完整证据仅存于开发目录 `game/artifacts/qa/player-feedback/`，公开 GitHub 副本不包含这些附件。
+
+- `source-checks.json` 记录两个仓库的运行时对照、发布提交及脚本校验值。
+- `deployment.json` 记录 PR、Pages 工作流和 Sites 版本、部署 ID。
+- `browser.json` 与桌面/手机截图记录开局及新增交互检查。
+- `sites-live.json`、`github-live.json` 与对应截图记录两个线上入口的启动检查。
+- `earned-run.json` 是浏览器正常取得的存档，供触屏复查使用，保留为可复现证据。
+
+2026-09-12 仅整理文档、核对已发布状态与本地证据，没有改动游戏代码、重复整局测试或再次部署。后续文档提交不改变上表的发布源码提交。
 
 不同域名的浏览器存档分别保存。原 Sites 地址保留原域名存档；GitHub Pages 是独立备用入口，不自动搬迁既有进度。

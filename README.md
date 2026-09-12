@@ -4,7 +4,7 @@
 
 ![青竹劫境主界面](docs/screenshots/01-青竹劫境.png)
 
-公开试玩见 [原入口](https://qingzhu-jiejing.amajobs.chatgpt.site)；备用入口由本仓库 GitHub Pages 发布。不同域名的存档分别保存。
+公开试玩见 [原入口](https://qingzhu-jiejing.amajobs.chatgpt.site)；[GitHub Pages 备用入口](https://amadeus-ddc.github.io/qingzhu-jiejing/) 也可直接试玩。不同域名的存档分别保存。
 
 ## 怎么玩
 
@@ -60,7 +60,9 @@ npm start
 - `npm test` 检查战斗、地形、寻路和敌潮规则。
 - `npm run test:balance` 运行六组确定性模拟，不等同于真人试玩。
 - `node tests/pixel-browser.mjs` 通过键盘和界面进行浏览器验证，需要本机 Chrome 与已启动的本地服务。
-- 既有验证覆盖40项规则检查，以及一次约22分钟的完整浏览器通关。最终首领调整另做专项验证，不能据此保证所有构筑都平衡。
+- 玩家反馈版本通过 44 项规则检查、六组确定性模拟和桌面/横屏触控专项检查；两个线上入口分别完成未登录启动验证。
+- `node tests/pixel-feedback-browser.mjs` 检查正常开局、提前挑战、存档续玩及触屏交互，需要本机 Chrome 和本地服务。
+- 约 22 分钟的完整浏览器通关属于上一版历史验证，本版没有重新进行浏览器整局通关。详细范围见 [修订与验证记录](tests/PLAYER_FEEDBACK_VALIDATION.md)。
 
 ## 实机画面
 
